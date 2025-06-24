@@ -12,22 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
-export async function GET(req: NextRequest) {
-  let response = {}
-
-  try {
-    if (req.headers.get('X-Goog-Authenticated-User-Email')) {
-      response = {
-        targetPrincipal: req.headers.get('X-Goog-Authenticated-User-Email'),
-      }
-    } else {
-      throw Error('ID header not found')
-    }
-  } catch (error) {
-    console.error(error)
-    response = { error: 'Authentication error', status: 500 }
+export async function GET() {
+  // 公共访问，不检查任何 header
+  const response = {
+    targetPrincipal: 'anonymous@public', 
   }
 
   return NextResponse.json(response)
