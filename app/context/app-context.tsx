@@ -1,17 +1,3 @@
-// Copyright 2025 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 'use client'
 
 import { createContext, useState, useEffect, useContext } from 'react'
@@ -57,18 +43,16 @@ const AppContext = createContext<AppContextType>({
 export function ContextProvider({ children }: { children: React.ReactNode }) {
   const [appContext, setAppContext] = useState<AppContextType['appContext']>(appContextDataDefault)
   const [error, setError] = useState<Error | string | null>(null)
-  const [retries, setRetries] = useState(0)
 
   useEffect(() => {
     async function fetchAndUpdateContext() {
       try {
-        // 0. Check if required environment variables are available
+        // 0. 检查必需环境变量
         if (
           !process.env.NEXT_PUBLIC_PROJECT_ID ||
           !process.env.NEXT_PUBLIC_VERTEX_API_LOCATION ||
           !process.env.NEXT_PUBLIC_GCS_BUCKET_LOCATION ||
           !process.env.NEXT_PUBLIC_GEMINI_MODEL ||
-          !process.env.NEXT_PUBLIC_PRINCIPAL_TO_USER_FILTERS ||
           !process.env.NEXT_PUBLIC_OUTPUT_BUCKET ||
           !process.env.NEXT_PUBLIC_TEAM_BUCKET ||
           !process.env.NEXT_PUBLIC_EXPORT_FIELDS_OPTIONS_URI
@@ -80,87 +64,69 @@ export function ContextProvider({ children }: { children: React.ReactNode }) {
           throw Error('Missing required environment variables for editing')
         }
 
-        // 1. Fetch User ID from client-side
-        let fetchedUserID = ''
+        // 1. 获取用户 ID（支持匿名）
+        let fetchedUserID = 'anonymous@public'
 
         if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_TEST_DEV_USER_ID) {
-          // Locally IAP is not enabled
           fetchedUserID = process.env.NEXT_PUBLIC_TEST_DEV_USER_ID
         } else {
-          // Fetching ID via IAP
-          const response = await fetch('/api/google-auth')
-          const authParams = await response.json()
-          if (typeof authParams === 'object' && 'error' in authParams) {
-            throw Error(authParams.error)
+          try {
+            const response = await fetch('/api/google-auth')
+            const authParams = await response.json()
+
+            if (authParams?.targetPrincipal) {
+              let targetPrincipal: string = authParams['targetPrincipal']
+              const filters = process.env.NEXT_PUBLIC_PRINCIPAL_TO_USER_FILTERS || ''
+              filters.split(',').forEach((f) => (targetPrincipal = targetPrincipal.replace(f, '')))
+              fetchedUserID = targetPrincipal
+            }
+          } catch (err) {
+            console.warn('使用匿名身份访问，跳过身份校验')
           }
-
-          let targetPrincipal: string
-
-          if (authParams !== undefined && authParams['targetPrincipal'] !== undefined) {
-            targetPrincipal = authParams['targetPrincipal']
-            const principalToUserFilters = process.env.NEXT_PUBLIC_PRINCIPAL_TO_USER_FILTERS
-              ? process.env.NEXT_PUBLIC_PRINCIPAL_TO_USER_FILTERS
-              : ''
-
-            principalToUserFilters
-              .split(',')
-              .forEach((filter) => (targetPrincipal = targetPrincipal.replace(filter, '')))
-          } else {
-            throw Error('An unexpected error occurred while fetching User ID')
-          }
-          fetchedUserID = targetPrincipal
         }
 
-        // 2. Set GCS URI for all edited/ generated images
-        let gcsURI = `gs://${process.env.NEXT_PUBLIC_OUTPUT_BUCKET}`
+        // 2. 设置 GCS URI
+        const gcsURI = `gs://${process.env.NEXT_PUBLIC_OUTPUT_BUCKET}`
 
-        // 3. Check if export metadata options file exists
+        // 3. 获取导出元数据选项
         let exportMetaOptions: any = {}
-        const exportMetaOptionsURI = process.env.NEXT_PUBLIC_EXPORT_FIELDS_OPTIONS_URI
         try {
-          exportMetaOptions = await fetchJsonFromStorage(exportMetaOptionsURI)
-          if (!exportMetaOptions) throw Error('Not found')
-        } catch (error) {
-          throw Error('Could not fetch export metadata options')
+          exportMetaOptions = await fetchJsonFromStorage(process.env.NEXT_PUBLIC_EXPORT_FIELDS_OPTIONS_URI!)
+        } catch {
+          throw Error('无法获取导出字段配置')
         }
-        const ExportImageFormFields: ExportMediaFormFieldsI = { ...exportStandardFields, ...exportMetaOptions }
 
-        // 4. Update Context with all fetched data
+        const ExportImageFormFields: ExportMediaFormFieldsI = {
+          ...exportStandardFields,
+          ...exportMetaOptions,
+        }
+
+        // 4. 设置上下文
         setAppContext({
           userID: fetchedUserID,
-          gcsURI: gcsURI?.toString(),
+          gcsURI,
           exportMetaOptions: ExportImageFormFields,
           isLoading: false,
         })
-        setRetries(0)
-      } catch (error: unknown) {
-        setError('An unexpected error occurred, retrying...')
-        console.error(error)
-
-        // Maximum 3 retries
-        if (retries < 3) {
-          console.error('Retrying fetch in 2 seconds...')
-          setTimeout(() => {
-            setRetries(retries + 1)
-          }, 2000) // Retry after 2 seconds
-        } else {
-          setAppContext(appContextDataDefault)
-          setError('Failed to fetch data after multiple retries')
-        }
+      } catch (err) {
+        console.error('初始化失败:', err)
+        setAppContext({
+          ...appContextDataDefault,
+          userID: 'anonymous@public',
+          isLoading: false,
+        })
+        setError('初始化失败')
       }
     }
 
     fetchAndUpdateContext()
-  }, [retries])
+  }, [])
 
-  const contextValue = {
-    appContext,
-    setAppContext,
-    error,
-    setError,
-  }
-
-  return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>
+  return (
+    <AppContext.Provider value={{ appContext, setAppContext, error, setError }}>
+      {children}
+    </AppContext.Provider>
+  )
 }
 
 export function useAppContext() {
