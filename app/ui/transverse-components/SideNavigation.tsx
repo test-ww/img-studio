@@ -134,8 +134,35 @@ export default function SideNav() {
         </List>
       )}
 
-      {/* Footer credit removed */}
-
+      {open && (
+        <Typography
+          variant="caption"
+          align="left"
+          sx={{
+            position: 'absolute',
+            bottom: 15,
+            left: 15,
+            fontSize: '0.6rem',
+            fontWeight: 400,
+            color: palette.secondary.light,
+          }}
+        >
+          / 欢迎合作 <span style={{ margin: 1, color: palette.primary.main }}>❤</span> 
+          <a
+            href="https://cloudpuppy.ai/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: 'white',
+              fontWeight: 700,
+              textDecoration: 'none',
+              margin: 2,
+            }}
+          >
+            @CloudPuppy
+          </a>
+        </Typography>
+      )}
       <IconButton
         onClick={() => setOpen(!open)}
         sx={{
