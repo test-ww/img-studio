@@ -14,20 +14,20 @@
 
 export const pages = {
   Generate: {
-    name: '生成',
-    description: '从头开始或使用参考内容创建新内容',
+    name: 'Generate',
+    description: 'Create new content from scratch or with references',
     href: '/generate',
     status: 'true',
   },
   Edit: {
-    name: '编辑',
-    description: '导入、编辑和转换现有内容',
+    name: 'Edit',
+    description: 'Import, edit and transform existing content',
     href: '/edit',
     status: process.env.NEXT_PUBLIC_EDIT_ENABLED,
   },
   Library: {
-    name: '浏览',
-    description: "浏览团队库中的共享作品",
+    name: 'Browse',
+    description: "Explore shared creations from your team's Library",
     href: '/library',
     status: 'true',
   },
