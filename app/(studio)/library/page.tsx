@@ -161,21 +161,27 @@ export default function Page() {
   []
  )
 
- const triggerFetch = useCallback((newFilters: any) => {
-    // =================================================================
-    // ================== 加了日志 ==================
+  // =================================================================
+  // ================== 1. 我修复了这个函数 ==================
+  // =================================================================
+  const triggerFetch = useCallback((newFilters: any) => {
     console.log('Fetch triggered! The selected filters are:', newFilters);
-    // =================================================================
-    // =================================================================
+    setErrorMsg('');
+    setOpenFilters(false);
+    setFilters(newFilters);
+    
+    // 直接调用获取数据的函数，并告诉它这是一个全新的、需要替换数据的搜索
+    fetchDataAndSignedUrls(newFilters, null, true);
+  }, [fetchDataAndSignedUrls]); // 加上了依赖
 
-    setErrorMsg('')
-    setOpenFilters(false)
-    setFilters(newFilters)
- }, [])
-
- useEffect(() => {
-  if (lastVisibleDocument === null && filters !== null) fetchDataAndSignedUrls(filters, null, true)
- }, [filters, lastVisibleDocument, fetchDataAndSignedUrls])
+  // =================================================================
+  // ================== 2. 我删除了有问题的 useEffect ==================
+  // =================================================================
+  /* 
+  useEffect(() => {
+   if (lastVisibleDocument === null && filters !== null) fetchDataAndSignedUrls(filters, null, true)
+  }, [filters, lastVisibleDocument, fetchDataAndSignedUrls])
+  */
 
  useEffect(() => {
   setIsMediasLoading(true)
