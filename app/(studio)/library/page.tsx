@@ -47,7 +47,6 @@ export default function Page() {
     const [fetchedMediasByPage, setFetchedMediasByPage] = useState<MediaMetadataWithSignedUrl[][]>([])
     const [lastVisibleDocument, setLastVisibleDocument] = useState<any | null>(null)
     const [isMorePageToLoad, setIsMorePageToLoad] = useState(false)
-    // FIX 1: Explicitly type the state to allow for 'null' or an object. This fixes the build error.
     const [filters, setFilters] = useState<any | null>(null)
     const [openFilters, setOpenFilters] = useState(false)
 
@@ -108,7 +107,9 @@ export default function Page() {
                 setErrorMsg('')
 
                 const documentsWithSignedUrlsPromises = documents.map(
-                    async (doc: { gcsURI: string; videoThumbnailGcsUri?: string }) => {
+                    // BUILD FIX: Use the correct type 'MediaMetadataI' for the 'doc' parameter.
+                    // This ensures that '...doc' spreads all required properties, even in the catch block.
+                    async (doc: MediaMetadataI) => {
                         if (!doc.gcsURI) return { ...doc, signedUrl: '' } as MediaMetadataWithSignedUrl
                         try {
                             const signedUrlResult = await getSignedURL(doc.gcsURI)
@@ -129,15 +130,14 @@ export default function Page() {
                             } as MediaMetadataWithSignedUrl
                         } catch (error) {
                             console.error('Error fetching signed URL for a document:', doc.gcsURI, error)
+                            // Now that 'doc' is correctly typed, this return statement is valid.
                             return { ...doc, signedUrl: '', gcsURIError: true } as MediaMetadataWithSignedUrl
                         }
                     }
                 )
                 
-                // FIX 3: Restore robust filtering to prevent runtime errors with missing URLs.
                 const documentsWithSignedUrls = (await Promise.all(documentsWithSignedUrlsPromises)).filter((doc) => {
                     if (!doc || !doc.signedUrl || doc.gcsURIError) return false
-                    // For videos, ensure the thumbnail is also present before showing
                     if (doc.format === 'MP4') return doc.videoThumbnailSignedUrl && doc.videoThumbnailSignedUrl !== ''
                     return true
                 })
@@ -170,10 +170,7 @@ export default function Page() {
         setFilters(newFilters)
     }, [])
 
-    // FIX 2: Use a single, refactored useEffect to handle both initial load and filter changes correctly.
     useEffect(() => {
-        // On initial mount, 'filters' is null, so we pass {} to fetch all items.
-        // When 'filters' is updated, this effect re-runs with the new filters.
         fetchDataAndSignedUrls(filters ?? {}, null, true)
     }, [filters, fetchDataAndSignedUrls])
 
@@ -184,7 +181,6 @@ export default function Page() {
         }
     }, [lastVisibleDocument, isMorePageToLoad, filters, fetchDataAndSignedUrls])
 
-    // Deletion handlers
     const handleDeletion = useCallback(async () => {
         if (deletionStatus === 'init') {
             setDelStatus('selecting')
@@ -205,7 +201,6 @@ export default function Page() {
                 const result = await firestoreDeleteBatch(selectedIdsForDeletion, allFetchedMedias)
 
                 if (result === true) {
-                    // After deletion, refetch the data with the current filters.
                     await fetchDataAndSignedUrls(filters ?? {}, null, true)
                     setDeletionSuccess(true)
                     setSelectedIdsForDeletion([])
@@ -315,8 +310,8 @@ export default function Page() {
                         <IconButton
                             onClick={
                                 selectedIdsForDeletion.length > 0
-                                    ? () => setSelectedIdsForDeletion([]) // Handler when items are selected
-                                    : () => setDelStatus('init') // Handler when no items are selected
+                                    ? () => setSelectedIdsForDeletion([])
+                                    : () => setDelStatus('init')
                             }
                             aria-label="Reset delete selection"
                             disableRipple
