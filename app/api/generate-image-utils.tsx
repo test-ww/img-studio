@@ -79,10 +79,10 @@ export const GenerateImageFormFields = {
   },
   modelVersion: {
     type: 'select',
-    default: 'imagen-4.0-generate-preview-05-20',
+    default: 'imagen-4.0-generate-preview-06-06',
     options: [
       {
-        value: 'imagen-4.0-generate-preview-05-20',
+        value: 'imagen-4.0-generate-preview-06-06',
         label: 'Imagen 4',
         indication: 'High performance latest model version',
       },
