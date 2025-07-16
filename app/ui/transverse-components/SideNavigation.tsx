@@ -147,9 +147,9 @@ export default function SideNav() {
             color: palette.secondary.light,
           }}
         >
-          / Made with <span style={{ margin: 1, color: palette.primary.main }}>❤</span> by
+          / 欢迎合作 <span style={{ margin: 1, color: palette.primary.main }}>❤</span> 
           <a
-            href="https://www.linkedin.com/in/aduboue/"
+            href="https://cloudpuppy.ai/"
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -159,7 +159,7 @@ export default function SideNav() {
               margin: 2,
             }}
           >
-            @Agathe
+            @CloudPuppy
           </a>
         </Typography>
       )}
