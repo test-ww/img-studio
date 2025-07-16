@@ -18,7 +18,7 @@ steps:
       [
         'build',
         '-t',
-        'gcr.io/$PROJECT_ID/img-studio-repo/img-studio:latest',
+        'gcr.io/$PROJECT_ID/img-studio:latest',
         '--build-arg',
         '_NEXT_PUBLIC_PROJECT_ID=$PROJECT_ID',
         '--build-arg',
@@ -48,7 +48,7 @@ steps:
         '.',
       ]
 images:
-  - 'gcr.io/$PROJECT_ID/img-studio-repo/img-studio:latest'
+  - 'gcr.io/$PROJECT_ID/img-studio:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY
