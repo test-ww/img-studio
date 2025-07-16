@@ -107,8 +107,6 @@ export default function Page() {
                 setErrorMsg('')
 
                 const documentsWithSignedUrlsPromises = documents.map(
-                    // BUILD FIX: Use the correct type 'MediaMetadataI' for the 'doc' parameter.
-                    // This ensures that '...doc' spreads all required properties, even in the catch block.
                     async (doc: MediaMetadataI) => {
                         if (!doc.gcsURI) return { ...doc, signedUrl: '' } as MediaMetadataWithSignedUrl
                         try {
@@ -130,7 +128,6 @@ export default function Page() {
                             } as MediaMetadataWithSignedUrl
                         } catch (error) {
                             console.error('Error fetching signed URL for a document:', doc.gcsURI, error)
-                            // Now that 'doc' is correctly typed, this return statement is valid.
                             return { ...doc, signedUrl: '', gcsURIError: true } as MediaMetadataWithSignedUrl
                         }
                     }
@@ -239,7 +236,7 @@ export default function Page() {
     const alertOnClose = useCallback(() => {
         if (displayedAlertProps?.style === 'success') setDeletionSuccess(false)
         else if (displayedAlertProps?.style === 'error') setErrorMsg('')
-    }, [displayedAlertProps, setDeletionSuccess, setErrorMsg])
+    }, [displayedAlertProps])
 
     let delButtonLabel = 'Batch Delete'
     if (deletionStatus === 'selecting') {
@@ -247,6 +244,16 @@ export default function Page() {
             delButtonLabel = `Delete ${selectedIdsForDeletion.length} media${selectedIdsForDeletion.length > 1 ? 's' : ''}`
         else delButtonLabel = 'Select media(s)'
     } else if (deletionStatus === 'deleting') delButtonLabel = 'Deleting...'
+
+    // LINTING FIX: Memoize the handler to avoid creating new functions on each render.
+    const handleResetOrCancelDeletion = useCallback(() => {
+        if (selectedIdsForDeletion.length > 0) {
+            setSelectedIdsForDeletion([]);
+        } else {
+            setDelStatus('init');
+        }
+    }, [selectedIdsForDeletion]);
+
 
     return (
         <Box p={4} sx={{ maxHeight: '100vh', width: '100%', overflowY: 'scroll' }}>
@@ -292,7 +299,9 @@ export default function Page() {
                     isMediasLoading={isMediasLoading}
                     setIsMediasLoading={setIsMediasLoading}
                     setErrorMsg={setErrorMsg}
-                    submitFilters={(filters: any) => triggerFetch(filters)}
+                    // LINTING FIX: Pass the memoized 'triggerFetch' function directly.
+                    // This avoids creating a new function on every render and satisfies strict linting rules.
+                    submitFilters={triggerFetch}
                     openFilters={openFilters}
                     setOpenFilters={setOpenFilters}
                 />
@@ -308,11 +317,7 @@ export default function Page() {
                 >
                     {deletionStatus === 'selecting' && (
                         <IconButton
-                            onClick={
-                                selectedIdsForDeletion.length > 0
-                                    ? () => setSelectedIdsForDeletion([])
-                                    : () => setDelStatus('init')
-                            }
+                            onClick={handleResetOrCancelDeletion}
                             aria-label="Reset delete selection"
                             disableRipple
                             sx={{
